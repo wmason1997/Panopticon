@@ -54,6 +54,7 @@ export function Header({ user }: HeaderProps) {
               <img
                 src={user.avatar_url}
                 alt={user.display_name}
+                referrerPolicy="no-referrer"
                 className="h-6 w-6 rounded-full"
               />
             ) : (

@@ -68,6 +68,7 @@ export default function ProfilePage({ params }: Props) {
               <img
                 src={profile.avatar_url}
                 alt={profile.display_name}
+                referrerPolicy="no-referrer"
                 className="h-14 w-14 rounded-full border border-zinc-700"
               />
             ) : (
