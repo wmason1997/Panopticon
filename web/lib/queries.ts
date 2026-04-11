@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "./api";
-import type { ActivityPoint, Goal, PublicProfile, User, UserSummary, WeeklyProgress } from "./types";
+import type { ActivityPoint, FeedItem, Goal, PublicProfile, User, UserSummary, WeeklyProgress } from "./types";
 
 // ─── Query keys ────────────────────────────────────────────────────────────
 
@@ -11,6 +11,7 @@ export const qk = {
   profile: (id: string) => ["profile", id] as const,
   activity: (id: string) => ["activity", id] as const,
   following: ["following"] as const,
+  feed: ["feed"] as const,
 };
 
 // ─── Request types ─────────────────────────────────────────────────────────
@@ -135,5 +136,12 @@ export function useDeleteGoal() {
       qc.invalidateQueries({ queryKey: qk.goals });
       qc.invalidateQueries({ queryKey: qk.progress() });
     },
+  });
+}
+
+export function useFeed() {
+  return useQuery<FeedItem[], ApiError>({
+    queryKey: qk.feed,
+    queryFn: () => api.get<FeedItem[]>("/users/me/feed"),
   });
 }

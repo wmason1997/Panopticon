@@ -43,6 +43,7 @@ export function Header({ user }: HeaderProps) {
           </Link>
           <nav className="flex items-center gap-4 hidden sm:flex">
             {navLink("/dashboard", "goals")}
+            {navLink("/feed", "feed")}
             {navLink(`/profile/${user.id}`, "profile")}
             {navLink("/settings", "settings")}
           </nav>
