@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "./api";
-import type { ActivityPoint, FeedItem, Goal, PublicProfile, User, UserSummary, WeeklyProgress } from "./types";
+import type { ActivityPoint, FeedItem, Goal, LeaderboardEntry, PublicProfile, User, UserSummary, WeeklyProgress } from "./types";
 
 // ─── Query keys ────────────────────────────────────────────────────────────
 
@@ -12,6 +12,7 @@ export const qk = {
   activity: (id: string) => ["activity", id] as const,
   following: ["following"] as const,
   feed: ["feed"] as const,
+  leaderboard: ["leaderboard"] as const,
 };
 
 // ─── Request types ─────────────────────────────────────────────────────────
@@ -143,5 +144,34 @@ export function useFeed() {
   return useQuery<FeedItem[], ApiError>({
     queryKey: qk.feed,
     queryFn: () => api.get<FeedItem[]>("/users/me/feed"),
+  });
+}
+
+export function useLeaderboard() {
+  return useQuery<LeaderboardEntry[], ApiError>({
+    queryKey: qk.leaderboard,
+    queryFn: () => api.get<LeaderboardEntry[]>("/leaderboard"),
+  });
+}
+
+export function useLeaderboardOptIn() {
+  const qc = useQueryClient();
+  return useMutation<void, ApiError, void>({
+    mutationFn: () => api.post("/leaderboard/opt-in"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.me });
+      qc.invalidateQueries({ queryKey: qk.leaderboard });
+    },
+  });
+}
+
+export function useLeaderboardOptOut() {
+  const qc = useQueryClient();
+  return useMutation<void, ApiError, void>({
+    mutationFn: () => api.delete("/leaderboard/opt-in"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.me });
+      qc.invalidateQueries({ queryKey: qk.leaderboard });
+    },
   });
 }

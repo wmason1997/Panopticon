@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError } from "@/lib/api";
-import { useCurrentUser, useUpdateUser } from "@/lib/queries";
+import { useCurrentUser, useLeaderboardOptIn, useLeaderboardOptOut, useUpdateUser } from "@/lib/queries";
 import { Header } from "@/components/Header";
 
 const WEEK_DAYS = [
@@ -44,6 +44,8 @@ export default function Settings() {
   const router = useRouter();
   const { data: user, error: userError, isLoading } = useCurrentUser();
   const updateUser = useUpdateUser();
+  const leaderboardOptIn = useLeaderboardOptIn();
+  const leaderboardOptOut = useLeaderboardOptOut();
 
   const [displayName, setDisplayName] = useState("");
   const [timezone, setTimezone] = useState("UTC");
@@ -169,6 +171,38 @@ export default function Settings() {
                 ))}
               </select>
             </Field>
+          </Section>
+
+          {/* Leaderboard section */}
+          <Section title="leaderboard">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-mono text-xs text-zinc-400">Appear on leaderboard</p>
+                <p className="font-mono text-[11px] text-zinc-600 mt-0.5 max-w-xs leading-relaxed">
+                  Ranked by streak (consecutive weeks ≥ 80%) then lifetime average. Opt out anytime.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  user.leaderboard_opt_in
+                    ? leaderboardOptOut.mutate()
+                    : leaderboardOptIn.mutate()
+                }
+                disabled={leaderboardOptIn.isPending || leaderboardOptOut.isPending}
+                className={`font-mono text-xs px-4 py-2 rounded border transition-colors disabled:opacity-50 flex-shrink-0 ml-4 ${
+                  user.leaderboard_opt_in
+                    ? "border-zinc-700 text-zinc-400 hover:border-red-800 hover:text-red-400"
+                    : "border-green-800 text-green-400 hover:bg-green-900/30"
+                }`}
+              >
+                {leaderboardOptIn.isPending || leaderboardOptOut.isPending
+                  ? "…"
+                  : user.leaderboard_opt_in
+                  ? "opt out"
+                  : "opt in"}
+              </button>
+            </div>
           </Section>
 
           {/* Account section */}
