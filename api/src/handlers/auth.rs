@@ -1,12 +1,11 @@
 use axum::{
     extract::{Query, State},
     response::{IntoResponse, Redirect},
-    Json,
 };
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use chrono::Utc;
 use oauth2::{
-    basic::BasicClient, reqwest::async_http_client, AuthorizationCode, CsrfToken, Scope,
+    reqwest::async_http_client, AuthorizationCode, CsrfToken, Scope,
     TokenResponse,
 };
 use serde::{Deserialize, Serialize};

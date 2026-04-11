@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use chrono::{Datelike, Duration, NaiveDate, Utc};
+use chrono::{Duration, NaiveDate, Utc}; // NaiveDate used in parse_iso_week return type
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -11,6 +11,7 @@ use crate::{
     auth::session::AuthUser,
     error::{AppError, AppResult},
     models::progress::{LogProgressRequest, UpdateProgressRequest, WeeklyProgress},
+    utils::current_week_start,
     AppState,
 };
 
@@ -49,7 +50,7 @@ pub async fn get_progress(
     Ok(Json(rows))
 }
 
-/// POST /progress/:goal_id — log progress (increment)
+/// POST /progress/:id — log progress for a goal (`:id` is the goal id)
 pub async fn log_progress(
     State(state): State<AppState>,
     AuthUser(user): AuthUser,
@@ -130,15 +131,6 @@ pub async fn update_progress(
     enqueue_publish(&state, user.id, progress.id, &progress).await?;
 
     Ok(Json(progress))
-}
-
-/// Compute the start of the current week given the user's week_start (0=Sun…6=Sat)
-pub fn current_week_start(week_start: i16) -> NaiveDate {
-    let today = Utc::now().date_naive();
-    // weekday(): Mon=0…Sun=6
-    let today_dow = today.weekday().num_days_from_sunday() as i16; // 0=Sun
-    let days_since_start = (today_dow - week_start).rem_euclid(7);
-    today - Duration::days(days_since_start as i64)
 }
 
 fn parse_iso_week(s: &str) -> AppResult<NaiveDate> {

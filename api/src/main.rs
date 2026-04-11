@@ -13,6 +13,7 @@ mod error;
 mod handlers;
 mod models;
 mod routes;
+mod utils;
 
 #[derive(Clone)]
 pub struct AppState {

@@ -3,13 +3,13 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use chrono::Utc;
 use uuid::Uuid;
 
 use crate::{
     auth::session::AuthUser,
     error::{AppError, AppResult},
     models::goal::{CreateGoalRequest, Goal, GoalType, GoalVisibility, UpdateGoalRequest},
+    utils::current_week_start,
     AppState,
 };
 
@@ -32,23 +32,25 @@ pub async fn create_goal(
     let target_count = req.target_count.unwrap_or(1).max(1);
     let visibility = req.visibility.unwrap_or(GoalVisibility::Public);
 
+    // Pass enum values as strings and cast in SQL so SQLx infers TEXT params,
+    // avoiding the "no built-in mapping for custom enum" compile error.
     let goal = sqlx::query_as!(
         Goal,
         r#"
         INSERT INTO goals (id, user_id, goal_type, title, target_count, visibility, week_start_date)
-        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)
+        VALUES (gen_random_uuid(), $1, $2::text::goal_type, $3, $4, $5::text::goal_visibility, $6)
         RETURNING id, user_id,
-                  goal_type as "goal_type: _",
+                  goal_type     as "goal_type: GoalType",
                   title, target_count,
-                  visibility as "visibility: _",
+                  visibility    as "visibility: GoalVisibility",
                   is_archived, week_start_date,
                   created_at, updated_at
         "#,
         user.id,
-        goal_type_to_str(&req.goal_type),
+        goal_type_str(&req.goal_type),
         req.title.trim(),
         target_count,
-        visibility_to_str(&visibility),
+        visibility_str(&visibility),
         req.week_start_date,
     )
     .fetch_one(&state.db)
@@ -57,20 +59,22 @@ pub async fn create_goal(
     Ok((StatusCode::CREATED, Json(goal)))
 }
 
-/// GET /goals — list my goals (recurring + current week's weekly goals)
+/// GET /goals — recurring goals + weekly goals for the user's current week
 pub async fn list_goals(
     State(state): State<AppState>,
     AuthUser(user): AuthUser,
 ) -> AppResult<Json<Vec<Goal>>> {
-    let today = Utc::now().date_naive();
+    // Derive this week's start date from the user's week_start setting so
+    // weekly goals for exactly this week are returned.
+    let week_start = current_week_start(user.week_start);
 
     let goals = sqlx::query_as!(
         Goal,
         r#"
         SELECT id, user_id,
-               goal_type as "goal_type: _",
+               goal_type  as "goal_type: GoalType",
                title, target_count,
-               visibility as "visibility: _",
+               visibility as "visibility: GoalVisibility",
                is_archived, week_start_date,
                created_at, updated_at
         FROM goals
@@ -78,12 +82,12 @@ pub async fn list_goals(
           AND is_archived = false
           AND (
               goal_type = 'recurring'
-              OR (goal_type = 'weekly' AND week_start_date >= $2 - INTERVAL '6 days' AND week_start_date <= $2)
+              OR (goal_type = 'weekly' AND week_start_date = $2)
           )
         ORDER BY created_at ASC
         "#,
         user.id,
-        today,
+        week_start,
     )
     .fetch_all(&state.db)
     .await?;
@@ -104,20 +108,20 @@ pub async fn update_goal(
         UPDATE goals SET
             title        = COALESCE($1, title),
             target_count = COALESCE($2, target_count),
-            visibility   = COALESCE($3::goal_visibility, visibility),
+            visibility   = COALESCE($3::text::goal_visibility, visibility),
             is_archived  = COALESCE($4, is_archived),
             updated_at   = NOW()
         WHERE id = $5 AND user_id = $6
         RETURNING id, user_id,
-                  goal_type as "goal_type: _",
+                  goal_type  as "goal_type: GoalType",
                   title, target_count,
-                  visibility as "visibility: _",
+                  visibility as "visibility: GoalVisibility",
                   is_archived, week_start_date,
                   created_at, updated_at
         "#,
         req.title.as_deref(),
         req.target_count,
-        req.visibility.as_ref().map(|v| visibility_to_str(v)),
+        req.visibility.as_ref().map(|v| visibility_str(v)),
         req.is_archived,
         goal_id,
         user.id,
@@ -150,14 +154,14 @@ pub async fn delete_goal(
     Ok(StatusCode::NO_CONTENT)
 }
 
-fn goal_type_to_str(t: &GoalType) -> &'static str {
+fn goal_type_str(t: &GoalType) -> &'static str {
     match t {
         GoalType::Recurring => "recurring",
         GoalType::Weekly => "weekly",
     }
 }
 
-fn visibility_to_str(v: &GoalVisibility) -> &'static str {
+fn visibility_str(v: &GoalVisibility) -> &'static str {
     match v {
         GoalVisibility::Public => "public",
         GoalVisibility::Private => "private",
