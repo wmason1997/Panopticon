@@ -99,7 +99,7 @@ export default function Settings() {
     <>
       <Header user={user} />
 
-      <main className="mx-auto w-full max-w-2xl px-4 py-8">
+      <main className="mx-auto w-full max-w-2xl px-4 py-8 pb-24 sm:pb-8">
         <div className="mb-8">
           <p className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest mb-1">
             configuration

@@ -37,7 +37,7 @@ export default function FeedPage() {
     <>
       {me && <Header user={me} />}
 
-      <main className="mx-auto w-full max-w-2xl px-4 py-8 flex flex-col gap-8">
+      <main className="mx-auto w-full max-w-2xl px-4 py-8 pb-24 sm:pb-8 flex flex-col gap-8">
 
         <div>
           <p className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest mb-1">

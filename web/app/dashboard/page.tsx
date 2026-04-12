@@ -55,7 +55,7 @@ export default function Dashboard() {
     <>
       <Header user={user} />
 
-      <main className="mx-auto w-full max-w-2xl px-4 py-8 flex flex-col gap-6">
+      <main className="mx-auto w-full max-w-2xl px-4 py-8 pb-24 sm:pb-8 flex flex-col gap-6">
         {/* Week header */}
         <div className="flex items-end justify-between">
           <div>
