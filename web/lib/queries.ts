@@ -143,6 +143,18 @@ export function useDeleteGoal() {
   });
 }
 
+export function useToggleVisibility() {
+  const qc = useQueryClient();
+  return useMutation<Goal, ApiError, { goalId: string; visibility: "public" | "private" }>({
+    mutationFn: ({ goalId, visibility }) =>
+      api.patch<Goal>(`/goals/${goalId}`, { visibility }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.goals });
+      qc.invalidateQueries({ queryKey: qk.archivedGoals });
+    },
+  });
+}
+
 export function useArchivedGoals(enabled: boolean) {
   return useQuery<Goal[], ApiError>({
     queryKey: qk.archivedGoals,

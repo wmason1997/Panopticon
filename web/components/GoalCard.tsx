@@ -5,6 +5,7 @@ import {
   useLogProgress,
   useDeleteGoal,
   useArchiveGoal,
+  useToggleVisibility,
   useNotes,
   useCreateNote,
   useDeleteNote,
@@ -23,6 +24,7 @@ export function GoalCard({ goal, progress, archived = false }: GoalCardProps) {
   const logProgress = useLogProgress();
   const deleteGoal = useDeleteGoal();
   const archiveGoal = useArchiveGoal();
+  const toggleVisibility = useToggleVisibility();
   const [notesOpen, setNotesOpen] = useState(false);
 
   const completed = progress?.completed_count ?? 0;
@@ -54,11 +56,33 @@ export function GoalCard({ goal, progress, archived = false }: GoalCardProps) {
       <div className="p-4">
         {/* Type badge + actions */}
         <div className="flex items-center justify-between mb-3">
-          <span className="font-mono text-[10px] tracking-widest text-zinc-600 uppercase">
-            {goal.goal_type}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] tracking-widest text-zinc-600 uppercase">
+              {goal.goal_type}
+            </span>
+            {/* Visibility badge — always visible, muted */}
+            {!archived && (
+              <span className="font-mono text-[10px] tracking-widest text-zinc-700 uppercase">
+                · {goal.visibility}
+              </span>
+            )}
+          </div>
           {!archived && (
             <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-all">
+              {/* Visibility toggle */}
+              <button
+                onClick={() =>
+                  toggleVisibility.mutate({
+                    goalId: goal.id,
+                    visibility: goal.visibility === "public" ? "private" : "public",
+                  })
+                }
+                disabled={toggleVisibility.isPending}
+                className="text-zinc-700 hover:text-zinc-400 transition-colors font-mono text-[10px] tracking-widest uppercase"
+                aria-label="Toggle visibility"
+              >
+                {goal.visibility === "public" ? "make private" : "make public"}
+              </button>
               {goal.goal_type === "recurring" && (
                 <button
                   onClick={handleArchive}
