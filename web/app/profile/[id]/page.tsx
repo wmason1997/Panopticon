@@ -80,6 +80,16 @@ export default function ProfilePage({ params }: Props) {
               <h1 className="font-mono text-base font-semibold text-zinc-100">
                 {profile.display_name}
               </h1>
+              <div className="flex items-center gap-3 mt-1">
+                <span className="font-mono text-[11px] text-zinc-500">
+                  <span className="text-zinc-300">{profile.follower_count}</span>
+                  {" "}<span className="text-zinc-600">followers</span>
+                </span>
+                <span className="font-mono text-[11px] text-zinc-500">
+                  <span className="text-zinc-300">{profile.following_count}</span>
+                  {" "}<span className="text-zinc-600">following</span>
+                </span>
+              </div>
               <p className="font-mono text-[11px] text-zinc-600 mt-0.5">
                 joined {formatDate(profile.created_at)}
               </p>

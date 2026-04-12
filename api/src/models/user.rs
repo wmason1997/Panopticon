@@ -31,7 +31,7 @@ pub enum SubscriptionTier {
 }
 
 /// Public-facing profile (excludes private fields like email, oauth details)
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct PublicProfile {
     pub id: Uuid,
     pub display_name: String,
@@ -39,19 +39,8 @@ pub struct PublicProfile {
     pub subscription_tier: SubscriptionTier,
     pub leaderboard_opt_in: bool,
     pub created_at: DateTime<Utc>,
-}
-
-impl From<User> for PublicProfile {
-    fn from(u: User) -> Self {
-        Self {
-            id: u.id,
-            display_name: u.display_name,
-            avatar_url: u.avatar_url,
-            subscription_tier: u.subscription_tier,
-            leaderboard_opt_in: u.leaderboard_opt_in,
-            created_at: u.created_at,
-        }
-    }
+    pub follower_count: i64,
+    pub following_count: i64,
 }
 
 #[derive(Debug, Deserialize)]

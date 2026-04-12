@@ -44,19 +44,25 @@ pub async fn search_users(
     Ok(Json(users))
 }
 
-/// GET /users/:id — public profile
+/// GET /users/:id — public profile with follower/following counts
 pub async fn get_user(
     State(state): State<AppState>,
     Path(user_id): Path<Uuid>,
 ) -> AppResult<Json<PublicProfile>> {
-    let user = sqlx::query_as!(
-        User,
+    let profile = sqlx::query_as!(
+        PublicProfile,
         r#"
-        SELECT id, email, display_name, avatar_url, timezone, publish_time, week_start,
-               oauth_provider, oauth_provider_id,
-               subscription_tier as "subscription_tier: _",
-               leaderboard_opt_in, created_at, updated_at
-        FROM users WHERE id = $1
+        SELECT
+            u.id,
+            u.display_name,
+            u.avatar_url,
+            u.subscription_tier as "subscription_tier: _",
+            u.leaderboard_opt_in,
+            u.created_at,
+            (SELECT COUNT(*) FROM follows WHERE followed_id = u.id)::bigint AS "follower_count!",
+            (SELECT COUNT(*) FROM follows WHERE follower_id = u.id)::bigint AS "following_count!"
+        FROM users u
+        WHERE u.id = $1
         "#,
         user_id
     )
@@ -64,7 +70,7 @@ pub async fn get_user(
     .await?
     .ok_or(AppError::NotFound)?;
 
-    Ok(Json(user.into()))
+    Ok(Json(profile))
 }
 
 /// GET /users/me — authenticated user's own full profile

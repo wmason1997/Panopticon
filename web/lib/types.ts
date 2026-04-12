@@ -26,6 +26,8 @@ export interface PublicProfile {
   subscription_tier: SubscriptionTier;
   leaderboard_opt_in: boolean;
   created_at: string;
+  follower_count: number;
+  following_count: number;
 }
 
 export interface Goal {
