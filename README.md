@@ -8,6 +8,16 @@ Named after Bentham's "all-seeing" prison design: the awareness of being observe
 
 ---
 
+## Live
+
+| Service  | URL |
+|---|---|
+| Frontend | https://panopticon-omnfuk8lf-wmason1997s-projects.vercel.app |
+| API      | https://panopticon-production-2b7b.up.railway.app |
+| Health   | https://panopticon-production-2b7b.up.railway.app/health |
+
+---
+
 ## Stack
 
 | Layer | Technology |
