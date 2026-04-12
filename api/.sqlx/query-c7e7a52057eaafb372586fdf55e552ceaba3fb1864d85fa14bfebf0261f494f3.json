@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH weekly_completion AS (\n            SELECT\n                wp.user_id,\n                wp.week_start_date,\n                SUM(wp.completed_count)::float / NULLIF(SUM(wp.target_count)::float, 0) AS pct\n            FROM weekly_progress wp\n            WHERE wp.is_published = true\n            GROUP BY wp.user_id, wp.week_start_date\n        ),\n        streaks AS (\n            SELECT\n                user_id,\n                COUNT(*) FILTER (WHERE pct >= 0.8) AS streak_weeks\n            FROM (\n                SELECT\n                    user_id,\n                    week_start_date,\n                    pct,\n                    ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY week_start_date DESC) AS rn,\n                    ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY week_start_date DESC) -\n                    ROW_NUMBER() OVER (PARTITION BY user_id, (pct >= 0.8)::int ORDER BY week_start_date DESC) AS grp\n                FROM weekly_completion\n            ) sub\n            WHERE grp = 0 AND pct >= 0.8\n            GROUP BY user_id\n        ),\n        lifetime AS (\n            SELECT user_id, AVG(pct) * 100 AS lifetime_avg_pct\n            FROM weekly_completion\n            GROUP BY user_id\n        )\n        SELECT\n            u.id         AS user_id,\n            u.display_name,\n            u.avatar_url,\n            COALESCE(s.streak_weeks, 0) AS \"current_streak!: i64\",\n            l.lifetime_avg_pct\n        FROM users u\n        JOIN lifetime l    ON l.user_id = u.id\n        LEFT JOIN streaks s ON s.user_id = u.id\n        WHERE u.leaderboard_opt_in = true\n        ORDER BY s.streak_weeks DESC NULLS LAST, l.lifetime_avg_pct DESC NULLS LAST\n        LIMIT 100\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "avatar_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "current_streak!: i64",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "lifetime_avg_pct",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "c7e7a52057eaafb372586fdf55e552ceaba3fb1864d85fa14bfebf0261f494f3"
+}

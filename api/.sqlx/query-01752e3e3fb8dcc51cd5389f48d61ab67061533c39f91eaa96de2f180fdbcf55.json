@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO users (id, email, display_name, avatar_url, oauth_provider, oauth_provider_id)\n        VALUES (gen_random_uuid(), $1, $2, $3, 'google', $4)\n        ON CONFLICT (oauth_provider, oauth_provider_id)\n        DO UPDATE SET\n            email        = EXCLUDED.email,\n            display_name = EXCLUDED.display_name,\n            avatar_url   = EXCLUDED.avatar_url,\n            updated_at   = NOW()\n        RETURNING id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "01752e3e3fb8dcc51cd5389f48d61ab67061533c39f91eaa96de2f180fdbcf55"
+}

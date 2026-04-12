@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            n.id,\n            n.content,\n            wp.week_start_date,\n            CASE WHEN g.visibility = 'public' THEN g.title ELSE NULL END AS goal_title,\n            n.created_at\n        FROM notes n\n        JOIN weekly_progress wp ON wp.id = n.weekly_progress_id\n        JOIN goals g            ON g.id  = wp.goal_id\n        WHERE wp.user_id  = $1\n          AND n.is_public = true\n        ORDER BY wp.week_start_date DESC, n.created_at DESC\n        LIMIT 100\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "week_start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "goal_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "cb2c7c5f2c0347618785a75b7f30b7950b0939cac8ec0a105edc2372cc032976"
+}

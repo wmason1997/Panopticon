@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH due AS (\n            SELECT id, weekly_progress_id\n            FROM publish_queue\n            WHERE published_at IS NULL\n              AND scheduled_publish_at <= NOW()\n            FOR UPDATE SKIP LOCKED\n        ),\n        mark_progress AS (\n            UPDATE weekly_progress wp\n            SET is_published = true, updated_at = NOW()\n            FROM due\n            WHERE wp.id = due.weekly_progress_id\n        )\n        UPDATE publish_queue pq\n        SET published_at = NOW()\n        FROM due\n        WHERE pq.id = due.id\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "44ff383c5dee8c1f8c324ca6a4ce94fb8d1f2ef33c32eb756e1529ef5a2462f4"
+}

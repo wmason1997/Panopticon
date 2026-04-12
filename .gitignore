@@ -4,11 +4,12 @@
 .env.*.local
 !.env.example
 !.env.local.example
+!web/.env.local.example
 
 # Rust
 api/target/
-api/.sqlx/
 **/*.rs.bk
+# Note: api/.sqlx/ is intentionally tracked — required for SQLx offline mode in Docker builds
 
 # Node / Next.js
 web/node_modules/

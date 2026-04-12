@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            wp.week_start_date,\n            SUM(wp.completed_count)::int AS completed,\n            SUM(wp.target_count)::int    AS target\n        FROM weekly_progress wp\n        WHERE wp.user_id = $1 AND wp.is_published = true\n        GROUP BY wp.week_start_date\n        ORDER BY wp.week_start_date\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "week_start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 1,
+        "name": "completed",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "target",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "f6e7fc38057889cc6d4b03f3e5af54b1313975fbffa1da3d893e02a84c6562f3"
+}

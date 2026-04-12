@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            u.id        AS user_id,\n            u.display_name,\n            u.avatar_url,\n            wp.week_start_date,\n            SUM(wp.completed_count)::int AS completed,\n            SUM(wp.target_count)::int    AS target\n        FROM follows f\n        JOIN users u          ON u.id = f.followed_id\n        JOIN weekly_progress wp ON wp.user_id = u.id AND wp.is_published = true\n        WHERE f.follower_id = $1\n        GROUP BY u.id, u.display_name, u.avatar_url, wp.week_start_date\n        ORDER BY wp.week_start_date DESC, u.display_name ASC\n        LIMIT 200\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "avatar_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "week_start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "completed",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "target",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "5aaf6bd34e12ace71eca0d981332246eeef32ee5ae33b567faee42bdf853972e"
+}

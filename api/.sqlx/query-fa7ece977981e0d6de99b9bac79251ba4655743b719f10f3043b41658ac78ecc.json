@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO publish_queue (id, user_id, weekly_progress_id, change_payload, scheduled_publish_at)\n        VALUES (gen_random_uuid(), $1, $2, $3, $4)\n        ON CONFLICT (user_id, weekly_progress_id)\n        DO UPDATE SET\n            change_payload       = EXCLUDED.change_payload,\n            scheduled_publish_at = EXCLUDED.scheduled_publish_at,\n            published_at         = NULL\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Jsonb",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fa7ece977981e0d6de99b9bac79251ba4655743b719f10f3043b41658ac78ecc"
+}

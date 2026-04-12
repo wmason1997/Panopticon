@@ -1,0 +1,96 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id, user_id,\n                   goal_type  as \"goal_type: GoalType\",\n                   title, target_count,\n                   visibility as \"visibility: GoalVisibility\",\n                   is_archived, week_start_date,\n                   created_at, updated_at\n            FROM goals\n            WHERE user_id = $1\n              AND is_archived = true\n              AND goal_type = 'recurring'\n            ORDER BY updated_at DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "goal_type: GoalType",
+        "type_info": {
+          "Custom": {
+            "name": "goal_type",
+            "kind": {
+              "Enum": [
+                "recurring",
+                "weekly"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "target_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "visibility: GoalVisibility",
+        "type_info": {
+          "Custom": {
+            "name": "goal_visibility",
+            "kind": {
+              "Enum": [
+                "public",
+                "private"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "is_archived",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "week_start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "8cdc9404aa3955d2d644f39f1074781469cceb584e429f660cc2dc3fb4a7cf71"
+}

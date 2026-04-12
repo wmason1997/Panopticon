@@ -1,0 +1,104 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT u.id, u.email, u.display_name, u.avatar_url,\n                   u.timezone, u.publish_time, u.week_start,\n                   u.oauth_provider, u.oauth_provider_id,\n                   u.subscription_tier as \"subscription_tier: _\",\n                   u.leaderboard_opt_in,\n                   u.created_at, u.updated_at\n            FROM sessions s\n            JOIN users u ON u.id = s.user_id\n            WHERE s.id = $1 AND s.expires_at > NOW()\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "avatar_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "timezone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "publish_time",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "week_start",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 7,
+        "name": "oauth_provider",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "oauth_provider_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "subscription_tier: _",
+        "type_info": {
+          "Custom": {
+            "name": "subscription_tier",
+            "kind": {
+              "Enum": [
+                "free",
+                "premium"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "leaderboard_opt_in",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c75c67a470a997dfd5bb6a691ad2d0879884beb2a7855cedb8ff2b69344354f4"
+}

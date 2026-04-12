@@ -1,4 +1,5 @@
 use axum::{
+    http::StatusCode,
     routing::{delete, get, patch, post},
     Router,
 };
@@ -10,6 +11,8 @@ use crate::{
 
 pub fn build_router(state: AppState) -> Router {
     Router::new()
+        // Health check (no auth — used by Railway)
+        .route("/health", get(|| async { StatusCode::OK }))
         // Auth
         .route("/auth/google", get(auth::google_login))
         .route("/auth/google/callback", get(auth::google_callback))
