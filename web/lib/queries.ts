@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "./api";
-import type { ActivityPoint, FeedItem, Goal, LeaderboardEntry, Note, PublicProfile, User, UserSummary, WeeklyProgress } from "./types";
+import type { ActivityPoint, FeedItem, Goal, LeaderboardEntry, Note, PublicNoteView, PublicProfile, User, UserSummary, WeeklyProgress } from "./types";
 
 // ─── Query keys ────────────────────────────────────────────────────────────
 
@@ -15,6 +15,7 @@ export const qk = {
   feed: ["feed"] as const,
   leaderboard: ["leaderboard"] as const,
   notes: (progressId: string) => ["notes", progressId] as const,
+  publicNotes: (userId: string) => ["publicNotes", userId] as const,
   search: (q: string) => ["search", q] as const,
 };
 
@@ -219,6 +220,13 @@ export function useLeaderboardOptOut() {
       qc.invalidateQueries({ queryKey: qk.me });
       qc.invalidateQueries({ queryKey: qk.leaderboard });
     },
+  });
+}
+
+export function usePublicNotes(userId: string) {
+  return useQuery<PublicNoteView[], ApiError>({
+    queryKey: qk.publicNotes(userId),
+    queryFn: () => api.get<PublicNoteView[]>(`/users/${userId}/notes`),
   });
 }
 

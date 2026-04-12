@@ -86,6 +86,14 @@ export interface FeedItem {
   target: number | null;
 }
 
+export interface PublicNoteView {
+  id: string;
+  content: string;
+  week_start_date: string;
+  goal_title: string | null;
+  created_at: string;
+}
+
 export interface LeaderboardEntry {
   user_id: string;
   display_name: string;

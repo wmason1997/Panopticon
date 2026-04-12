@@ -9,10 +9,11 @@ import {
   useFollowing,
   useFollowUser,
   useUnfollowUser,
+  usePublicNotes,
 } from "@/lib/queries";
 import { ActivityHeatmap } from "@/components/ActivityHeatmap";
 import { Header } from "@/components/Header";
-import type { ActivityPoint } from "@/lib/types";
+import type { ActivityPoint, PublicNoteView } from "@/lib/types";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -25,6 +26,7 @@ export default function ProfilePage({ params }: Props) {
   const { data: profile, isLoading: profileLoading } = usePublicProfile(id);
   const { data: activity = [], isLoading: activityLoading } = useActivityData(id);
   const { data: following = [] } = useFollowing();
+  const { data: publicNotes = [] } = usePublicNotes(id);
 
   const followUser = useFollowUser();
   const unfollowUser = useUnfollowUser();
@@ -188,6 +190,14 @@ export default function ProfilePage({ params }: Props) {
           </div>
         )}
 
+        {/* Public notes */}
+        {publicNotes.length > 0 && (
+          <div>
+            <SectionLabel>notes</SectionLabel>
+            <PublicNotesList notes={publicNotes} />
+          </div>
+        )}
+
       </main>
     </>
   );
@@ -212,6 +222,60 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
       <div className="flex-1 h-px bg-zinc-800" />
     </div>
   );
+}
+
+function PublicNotesList({ notes }: { notes: PublicNoteView[] }) {
+  // Group by week_start_date, most recent first
+  const grouped = useMemo(() => {
+    const map = new Map<string, PublicNoteView[]>();
+    for (const n of notes) {
+      if (!map.has(n.week_start_date)) map.set(n.week_start_date, []);
+      map.get(n.week_start_date)!.push(n);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => b.localeCompare(a));
+  }, [notes]);
+
+  return (
+    <div className="flex flex-col gap-4">
+      {grouped.map(([week, weekNotes]) => (
+        <div key={week}>
+          <p className="font-mono text-[10px] text-zinc-700 mb-2">
+            {formatWeekLabel(week)}
+          </p>
+          <div className="flex flex-col gap-2">
+            {weekNotes.map((note) => (
+              <div
+                key={note.id}
+                className="rounded border border-zinc-800 bg-zinc-900 px-4 py-3"
+              >
+                {note.goal_title && (
+                  <p className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest mb-1.5">
+                    {note.goal_title}
+                  </p>
+                )}
+                <p className="font-mono text-xs text-zinc-400 leading-relaxed whitespace-pre-wrap break-words">
+                  {note.content}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function formatWeekLabel(iso: string): string {
+  const d = new Date(iso + "T00:00:00");
+  const end = new Date(d);
+  end.setDate(d.getDate() + 6);
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const startStr = `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+  const endStr =
+    end.getMonth() === d.getMonth()
+      ? String(end.getDate())
+      : `${MONTHS[end.getMonth()]} ${end.getDate()}`;
+  return `${startStr}–${endStr}, ${end.getFullYear()}`;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

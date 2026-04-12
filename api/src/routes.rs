@@ -20,6 +20,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/users/search", get(users::search_users))
         .route("/users/:id", get(users::get_user))
         .route("/users/:id/activity", get(users::get_activity))
+        .route("/users/:id/notes", get(notes::list_public_notes))
         // Publish
         .route("/publish/now", post(publish::publish_now))
         // Goals

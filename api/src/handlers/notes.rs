@@ -3,7 +3,8 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use serde::Deserialize;
+use chrono::NaiveDate;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
@@ -15,6 +16,48 @@ use crate::{
     },
     AppState,
 };
+
+/// A public note as seen by a profile visitor.
+/// goal_title is None when the goal is marked private.
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct PublicNoteView {
+    pub id: Uuid,
+    pub content: String,
+    pub week_start_date: NaiveDate,
+    /// None if the goal's visibility is private
+    pub goal_title: Option<String>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// GET /users/:id/notes — public notes for a profile (no auth required)
+pub async fn list_public_notes(
+    State(state): State<AppState>,
+    Path(user_id): Path<Uuid>,
+) -> AppResult<Json<Vec<PublicNoteView>>> {
+    let notes = sqlx::query_as!(
+        PublicNoteView,
+        r#"
+        SELECT
+            n.id,
+            n.content,
+            wp.week_start_date,
+            CASE WHEN g.visibility = 'public' THEN g.title ELSE NULL END AS goal_title,
+            n.created_at
+        FROM notes n
+        JOIN weekly_progress wp ON wp.id = n.weekly_progress_id
+        JOIN goals g            ON g.id  = wp.goal_id
+        WHERE wp.user_id  = $1
+          AND n.is_public = true
+        ORDER BY wp.week_start_date DESC, n.created_at DESC
+        LIMIT 100
+        "#,
+        user_id,
+    )
+    .fetch_all(&state.db)
+    .await?;
+
+    Ok(Json(notes))
+}
 
 #[derive(Debug, Deserialize)]
 pub struct NotesQuery {
