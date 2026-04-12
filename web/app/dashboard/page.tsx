@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError } from "@/lib/api";
-import { useCurrentUser, useGoals, useProgress } from "@/lib/queries";
+import { useCurrentUser, useGoals, useProgress, usePublishNow } from "@/lib/queries";
 import { Header } from "@/components/Header";
 import { GoalCard } from "@/components/GoalCard";
 import { AddGoalModal } from "@/components/AddGoalModal";
@@ -15,6 +15,7 @@ export default function Dashboard() {
   const { data: user, error: userError, isLoading: userLoading } = useCurrentUser();
   const { data: goals, isLoading: goalsLoading } = useGoals();
   const { data: progress } = useProgress();
+  const publishNow = usePublishNow();
 
   // Redirect to sign-in if not authenticated
   useEffect(() => {
@@ -113,10 +114,22 @@ export default function Dashboard() {
           </button>
         )}
 
-        {/* Publish notice */}
-        <p className="font-mono text-[10px] text-zinc-700 text-center">
-          &gt; progress publishes daily at {user.publish_time} ({user.timezone})
-        </p>
+        {/* Publish notice + manual publish */}
+        <div className="flex flex-col items-center gap-2">
+          <p className="font-mono text-[10px] text-zinc-700 text-center">
+            &gt; progress publishes daily at {user.publish_time} ({user.timezone})
+          </p>
+          <button
+            onClick={() => {
+              if (!confirm("Publish your current progress now? This will make it visible to your followers immediately.")) return;
+              publishNow.mutate();
+            }}
+            disabled={publishNow.isPending}
+            className="font-mono text-[10px] text-zinc-600 hover:text-green-500 transition-colors disabled:opacity-40 tracking-widest uppercase"
+          >
+            {publishNow.isPending ? "publishing…" : publishNow.isSuccess ? "✓ published" : "publish now"}
+          </button>
+        </div>
       </main>
 
       {showAddModal && <AddGoalModal onClose={() => setShowAddModal(false)} />}

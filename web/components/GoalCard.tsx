@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useLogProgress, useDeleteGoal, useNotes, useCreateNote, useDeleteNote } from "@/lib/queries";
+import { useLogProgress, useDeleteGoal, useNotes, useCreateNote, useDeleteNote, useCurrentUser } from "@/lib/queries";
 import type { Goal, Note, WeeklyProgress } from "@/lib/types";
 
 interface GoalCardProps {
@@ -150,18 +150,21 @@ export function GoalCard({ goal, progress }: GoalCardProps) {
 // ─── Notes panel ─────────────────────────────────────────────────────────────
 
 function NotesPanel({ progressId }: { progressId: string }) {
+  const { data: me } = useCurrentUser();
   const { data: notes = [], isLoading } = useNotes(progressId, true);
   const createNote = useCreateNote();
   const deleteNote = useDeleteNote();
   const [draft, setDraft] = useState("");
+  const [isPublic, setIsPublic] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isPremium = me?.subscription_tier === "premium";
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const content = draft.trim();
     if (!content) return;
     createNote.mutate(
-      { weekly_progress_id: progressId, content },
+      { weekly_progress_id: progressId, content, is_public: isPremium && isPublic },
       { onSuccess: () => setDraft("") },
     );
   }
@@ -202,7 +205,29 @@ function NotesPanel({ progressId }: { progressId: string }) {
           rows={2}
           className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none resize-none"
         />
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
+          {/* Public toggle */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={!isPremium}
+              onClick={() => isPremium && setIsPublic((v) => !v)}
+              title={isPremium ? undefined : "public notes — premium feature"}
+              className={`font-mono text-[10px] tracking-widest uppercase transition-colors ${
+                !isPremium
+                  ? "text-zinc-700 cursor-default"
+                  : isPublic
+                  ? "text-green-500"
+                  : "text-zinc-600 hover:text-zinc-400"
+              }`}
+            >
+              {!isPremium ? "⌠ public" : isPublic ? "● public" : "○ private"}
+            </button>
+            {!isPremium && (
+              <span className="font-mono text-[9px] text-zinc-700">premium</span>
+            )}
+          </div>
+
           <button
             type="submit"
             disabled={!draft.trim() || createNote.isPending}
@@ -227,9 +252,16 @@ function NoteItem({
 }) {
   return (
     <li className="group/note flex items-start gap-2">
-      <p className="flex-1 font-mono text-xs text-zinc-400 leading-relaxed whitespace-pre-wrap break-words">
-        {note.content}
-      </p>
+      <div className="flex-1 min-w-0">
+        <p className="font-mono text-xs text-zinc-400 leading-relaxed whitespace-pre-wrap break-words">
+          {note.content}
+        </p>
+        {note.is_public && (
+          <span className="font-mono text-[9px] text-green-700 tracking-widest uppercase">
+            public
+          </span>
+        )}
+      </div>
       <button
         onClick={onDelete}
         disabled={isDeleting}

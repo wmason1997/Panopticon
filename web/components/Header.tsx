@@ -67,6 +67,7 @@ export function Header({ user }: HeaderProps) {
               {navLink("/dashboard", "goals")}
               {navLink("/feed", "feed")}
               {navLink("/leaderboard", "ranks")}
+              {navLink("/search", "search")}
               {navLink(profileHref, "profile")}
               {navLink("/settings", "settings")}
             </nav>
@@ -103,10 +104,11 @@ export function Header({ user }: HeaderProps) {
 
       {/* Mobile bottom nav */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-800 bg-zinc-950/95 backdrop-blur-sm">
-        <div className="grid grid-cols-5 h-14">
+        <div className="grid grid-cols-6 h-14">
           {bottomTab("/dashboard", "goals")}
           {bottomTab("/feed", "feed")}
           {bottomTab("/leaderboard", "ranks")}
+          {bottomTab("/search", "search")}
           {bottomTab(profileHref, "profile", isProfileActive)}
           {bottomTab("/settings", "settings")}
         </div>

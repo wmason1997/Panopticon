@@ -4,7 +4,7 @@ use axum::{
 };
 
 use crate::{
-    handlers::{auth, follows, goals, leaderboard, notes, progress, users},
+    handlers::{auth, follows, goals, leaderboard, notes, progress, publish, users},
     AppState,
 };
 
@@ -17,8 +17,11 @@ pub fn build_router(state: AppState) -> Router {
         // Users
         .route("/users/me", get(users::get_me).patch(users::update_me))
         .route("/users/me/feed", get(follows::get_feed))
+        .route("/users/search", get(users::search_users))
         .route("/users/:id", get(users::get_user))
         .route("/users/:id/activity", get(users::get_activity))
+        // Publish
+        .route("/publish/now", post(publish::publish_now))
         // Goals
         .route("/goals", get(goals::list_goals).post(goals::create_goal))
         .route("/goals/:id", patch(goals::update_goal).delete(goals::delete_goal))

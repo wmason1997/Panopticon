@@ -1,15 +1,48 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     Json,
 };
+use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
     auth::session::AuthUser,
     error::{AppError, AppResult},
-    models::user::{PublicProfile, UpdateProfileRequest, User},
+    models::{follow::UserSummary, user::{PublicProfile, UpdateProfileRequest, User}},
     AppState,
 };
+
+#[derive(Debug, Deserialize)]
+pub struct SearchQuery {
+    pub q: Option<String>,
+}
+
+/// GET /users/search?q=term — search users by display name
+pub async fn search_users(
+    State(state): State<AppState>,
+    Query(params): Query<SearchQuery>,
+) -> AppResult<Json<Vec<UserSummary>>> {
+    let q = params.q.unwrap_or_default();
+    let q = q.trim().to_string();
+    if q.is_empty() {
+        return Ok(Json(vec![]));
+    }
+    let pattern = format!("%{}%", q.to_lowercase());
+    let users = sqlx::query_as!(
+        UserSummary,
+        r#"
+        SELECT id, display_name, avatar_url
+        FROM users
+        WHERE LOWER(display_name) LIKE $1
+        ORDER BY display_name
+        LIMIT 20
+        "#,
+        pattern,
+    )
+    .fetch_all(&state.db)
+    .await?;
+    Ok(Json(users))
+}
 
 /// GET /users/:id — public profile
 pub async fn get_user(

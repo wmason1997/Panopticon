@@ -14,6 +14,7 @@ export const qk = {
   feed: ["feed"] as const,
   leaderboard: ["leaderboard"] as const,
   notes: (progressId: string) => ["notes", progressId] as const,
+  search: (q: string) => ["search", q] as const,
 };
 
 // ─── Request types ─────────────────────────────────────────────────────────
@@ -187,7 +188,7 @@ export function useNotes(progressId: string | undefined, enabled: boolean) {
 
 export function useCreateNote() {
   const qc = useQueryClient();
-  return useMutation<Note, ApiError, { weekly_progress_id: string; content: string }>({
+  return useMutation<Note, ApiError, { weekly_progress_id: string; content: string; is_public?: boolean }>({
     mutationFn: (data) => api.post<Note>("/notes", data),
     onSuccess: (note) => {
       qc.invalidateQueries({ queryKey: qk.notes(note.weekly_progress_id) });
@@ -201,6 +202,26 @@ export function useDeleteNote() {
     mutationFn: ({ noteId }) => api.delete(`/notes/${noteId}`),
     onSuccess: (_, { progressId }) => {
       qc.invalidateQueries({ queryKey: qk.notes(progressId) });
+    },
+  });
+}
+
+export function useSearchUsers(q: string) {
+  return useQuery<UserSummary[], ApiError>({
+    queryKey: qk.search(q),
+    queryFn: () => api.get<UserSummary[]>(`/users/search?q=${encodeURIComponent(q)}`),
+    enabled: q.trim().length > 0,
+    staleTime: 10_000,
+  });
+}
+
+export function usePublishNow() {
+  const qc = useQueryClient();
+  return useMutation<void, ApiError, void>({
+    mutationFn: () => api.post("/publish/now"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.progress() });
+      qc.invalidateQueries({ queryKey: ["activity"] });
     },
   });
 }
