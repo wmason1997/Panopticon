@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "./api";
-import type { ActivityPoint, FeedItem, Goal, LeaderboardEntry, PublicProfile, User, UserSummary, WeeklyProgress } from "./types";
+import type { ActivityPoint, FeedItem, Goal, LeaderboardEntry, Note, PublicProfile, User, UserSummary, WeeklyProgress } from "./types";
 
 // ─── Query keys ────────────────────────────────────────────────────────────
 
@@ -13,6 +13,7 @@ export const qk = {
   following: ["following"] as const,
   feed: ["feed"] as const,
   leaderboard: ["leaderboard"] as const,
+  notes: (progressId: string) => ["notes", progressId] as const,
 };
 
 // ─── Request types ─────────────────────────────────────────────────────────
@@ -172,6 +173,34 @@ export function useLeaderboardOptOut() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.me });
       qc.invalidateQueries({ queryKey: qk.leaderboard });
+    },
+  });
+}
+
+export function useNotes(progressId: string | undefined, enabled: boolean) {
+  return useQuery<Note[], ApiError>({
+    queryKey: qk.notes(progressId ?? ""),
+    queryFn: () => api.get<Note[]>(`/notes?progress_id=${progressId}`),
+    enabled: enabled && !!progressId,
+  });
+}
+
+export function useCreateNote() {
+  const qc = useQueryClient();
+  return useMutation<Note, ApiError, { weekly_progress_id: string; content: string }>({
+    mutationFn: (data) => api.post<Note>("/notes", data),
+    onSuccess: (note) => {
+      qc.invalidateQueries({ queryKey: qk.notes(note.weekly_progress_id) });
+    },
+  });
+}
+
+export function useDeleteNote() {
+  const qc = useQueryClient();
+  return useMutation<void, ApiError, { noteId: string; progressId: string }>({
+    mutationFn: ({ noteId }) => api.delete(`/notes/${noteId}`),
+    onSuccess: (_, { progressId }) => {
+      qc.invalidateQueries({ queryKey: qk.notes(progressId) });
     },
   });
 }
