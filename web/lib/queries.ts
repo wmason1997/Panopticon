@@ -7,6 +7,7 @@ import type { ActivityPoint, FeedItem, Goal, LeaderboardEntry, Note, PublicProfi
 export const qk = {
   me: ["me"] as const,
   goals: ["goals"] as const,
+  archivedGoals: ["goals", "archived"] as const,
   progress: (week?: string) => ["progress", week ?? "current"] as const,
   profile: (id: string) => ["profile", id] as const,
   activity: (id: string) => ["activity", id] as const,
@@ -138,6 +139,37 @@ export function useDeleteGoal() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.goals });
       qc.invalidateQueries({ queryKey: qk.progress() });
+    },
+  });
+}
+
+export function useArchivedGoals(enabled: boolean) {
+  return useQuery<Goal[], ApiError>({
+    queryKey: qk.archivedGoals,
+    queryFn: () => api.get<Goal[]>("/goals?archived=true"),
+    enabled,
+  });
+}
+
+export function useArchiveGoal() {
+  const qc = useQueryClient();
+  return useMutation<Goal, ApiError, string>({
+    mutationFn: (goalId) => api.patch<Goal>(`/goals/${goalId}`, { is_archived: true }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.goals });
+      qc.invalidateQueries({ queryKey: qk.archivedGoals });
+      qc.invalidateQueries({ queryKey: qk.progress() });
+    },
+  });
+}
+
+export function useUnarchiveGoal() {
+  const qc = useQueryClient();
+  return useMutation<Goal, ApiError, string>({
+    mutationFn: (goalId) => api.patch<Goal>(`/goals/${goalId}`, { is_archived: false }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.goals });
+      qc.invalidateQueries({ queryKey: qk.archivedGoals });
     },
   });
 }

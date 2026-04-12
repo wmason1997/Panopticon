@@ -3,19 +3,24 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError } from "@/lib/api";
-import { useCurrentUser, useGoals, useProgress, usePublishNow } from "@/lib/queries";
+import { useCurrentUser, useGoals, useArchivedGoals, useUnarchiveGoal, useProgress, usePublishNow } from "@/lib/queries";
 import { Header } from "@/components/Header";
 import { GoalCard } from "@/components/GoalCard";
 import { AddGoalModal } from "@/components/AddGoalModal";
+import { useToast } from "@/components/Toast";
 
 export default function Dashboard() {
   const router = useRouter();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const { toast } = useToast();
 
   const { data: user, error: userError, isLoading: userLoading } = useCurrentUser();
   const { data: goals, isLoading: goalsLoading } = useGoals();
+  const { data: archivedGoals = [] } = useArchivedGoals(showArchived);
   const { data: progress } = useProgress();
   const publishNow = usePublishNow();
+  const unarchiveGoal = useUnarchiveGoal();
 
   // Redirect to sign-in if not authenticated
   useEffect(() => {
@@ -114,6 +119,40 @@ export default function Dashboard() {
           </button>
         )}
 
+        {/* Archived goals section */}
+        <div>
+          <button
+            onClick={() => setShowArchived((v) => !v)}
+            className="flex items-center gap-3 w-full group"
+          >
+            <span className="font-mono text-[10px] text-zinc-700 uppercase tracking-widest group-hover:text-zinc-500 transition-colors">
+              {showArchived ? "▲" : "▼"} archived
+            </span>
+            <div className="flex-1 h-px bg-zinc-800" />
+          </button>
+
+          {showArchived && (
+            <div className="flex flex-col gap-2 mt-3">
+              {archivedGoals.length === 0 ? (
+                <p className="font-mono text-xs text-zinc-700">no archived goals.</p>
+              ) : (
+                archivedGoals.map((goal) => (
+                  <div key={goal.id} className="relative group/archived">
+                    <GoalCard goal={goal} progress={undefined} archived />
+                    <button
+                      onClick={() => unarchiveGoal.mutate(goal.id)}
+                      disabled={unarchiveGoal.isPending}
+                      className="absolute top-3 right-4 font-mono text-[10px] text-zinc-700 hover:text-green-500 transition-colors tracking-widest uppercase opacity-0 group-hover/archived:opacity-100"
+                    >
+                      unarchive
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Publish notice + manual publish */}
         <div className="flex flex-col items-center gap-2">
           <p className="font-mono text-[10px] text-zinc-700 text-center">
@@ -122,7 +161,7 @@ export default function Dashboard() {
           <button
             onClick={() => {
               if (!confirm("Publish your current progress now? This will make it visible to your followers immediately.")) return;
-              publishNow.mutate();
+              publishNow.mutate(undefined, { onSuccess: () => toast("progress published.", "success") });
             }}
             disabled={publishNow.isPending}
             className="font-mono text-[10px] text-zinc-600 hover:text-green-500 transition-colors disabled:opacity-40 tracking-widest uppercase"

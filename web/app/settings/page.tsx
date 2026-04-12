@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ApiError } from "@/lib/api";
 import { useCurrentUser, useLeaderboardOptIn, useLeaderboardOptOut, useUpdateUser } from "@/lib/queries";
 import { Header } from "@/components/Header";
+import { useToast } from "@/components/Toast";
 
 const WEEK_DAYS = [
   { value: 0, label: "Sunday" },
@@ -46,13 +47,12 @@ export default function Settings() {
   const updateUser = useUpdateUser();
   const leaderboardOptIn = useLeaderboardOptIn();
   const leaderboardOptOut = useLeaderboardOptOut();
+  const { toast } = useToast();
 
   const [displayName, setDisplayName] = useState("");
   const [timezone, setTimezone] = useState("UTC");
   const [publishTime, setPublishTime] = useState("00:00");
   const [weekStart, setWeekStart] = useState(0);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState("");
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -73,15 +73,9 @@ export default function Settings() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
-    setSaved(false);
-
     updateUser.mutate(
       { display_name: displayName.trim(), timezone, publish_time: publishTime, week_start: weekStart },
-      {
-        onSuccess: () => setSaved(true),
-        onError: (err) => setError(err.message),
-      },
+      { onSuccess: () => toast("settings saved.", "success") },
     );
   }
 
@@ -221,16 +215,6 @@ export default function Settings() {
               )}
             </div>
           </Section>
-
-          {error && (
-            <p className="font-mono text-xs text-red-500">{error}</p>
-          )}
-
-          {saved && (
-            <p className="font-mono text-xs text-green-500">
-              &gt; settings saved.
-            </p>
-          )}
 
           <button
             type="submit"

@@ -1,8 +1,14 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     Json,
 };
+use serde::Deserialize as QueryDeserialize;
+
+#[derive(Debug, QueryDeserialize)]
+pub struct GoalsQuery {
+    pub archived: Option<bool>,
+}
 use uuid::Uuid;
 
 use crate::{
@@ -59,38 +65,61 @@ pub async fn create_goal(
     Ok((StatusCode::CREATED, Json(goal)))
 }
 
-/// GET /goals — recurring goals + weekly goals for the user's current week
+/// GET /goals — active recurring + current-week goals.
+/// Pass ?archived=true to get archived recurring goals instead.
 pub async fn list_goals(
     State(state): State<AppState>,
     AuthUser(user): AuthUser,
+    Query(params): Query<GoalsQuery>,
 ) -> AppResult<Json<Vec<Goal>>> {
-    // Derive this week's start date from the user's week_start setting so
-    // weekly goals for exactly this week are returned.
     let week_start = current_week_start(user.week_start);
 
-    let goals = sqlx::query_as!(
-        Goal,
-        r#"
-        SELECT id, user_id,
-               goal_type  as "goal_type: GoalType",
-               title, target_count,
-               visibility as "visibility: GoalVisibility",
-               is_archived, week_start_date,
-               created_at, updated_at
-        FROM goals
-        WHERE user_id = $1
-          AND is_archived = false
-          AND (
-              goal_type = 'recurring'
-              OR (goal_type = 'weekly' AND week_start_date = $2)
-          )
-        ORDER BY created_at ASC
-        "#,
-        user.id,
-        week_start,
-    )
-    .fetch_all(&state.db)
-    .await?;
+    let goals = if params.archived.unwrap_or(false) {
+        // Archived recurring goals only (weekly goals expire, no need to archive)
+        sqlx::query_as!(
+            Goal,
+            r#"
+            SELECT id, user_id,
+                   goal_type  as "goal_type: GoalType",
+                   title, target_count,
+                   visibility as "visibility: GoalVisibility",
+                   is_archived, week_start_date,
+                   created_at, updated_at
+            FROM goals
+            WHERE user_id = $1
+              AND is_archived = true
+              AND goal_type = 'recurring'
+            ORDER BY updated_at DESC
+            "#,
+            user.id,
+        )
+        .fetch_all(&state.db)
+        .await?
+    } else {
+        sqlx::query_as!(
+            Goal,
+            r#"
+            SELECT id, user_id,
+                   goal_type  as "goal_type: GoalType",
+                   title, target_count,
+                   visibility as "visibility: GoalVisibility",
+                   is_archived, week_start_date,
+                   created_at, updated_at
+            FROM goals
+            WHERE user_id = $1
+              AND is_archived = false
+              AND (
+                  goal_type = 'recurring'
+                  OR (goal_type = 'weekly' AND week_start_date = $2)
+              )
+            ORDER BY created_at ASC
+            "#,
+            user.id,
+            week_start,
+        )
+        .fetch_all(&state.db)
+        .await?
+    };
 
     Ok(Json(goals))
 }

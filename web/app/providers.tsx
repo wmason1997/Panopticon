@@ -1,8 +1,33 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ToastProvider, useToast } from "@/components/Toast";
+
+/** Subscribes to all mutation errors and surfaces them as toasts. */
+function GlobalErrorHandler() {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    return qc.getMutationCache().subscribe((event) => {
+      if (
+        event.type === "updated" &&
+        event.mutation?.state.status === "error"
+      ) {
+        const err = event.mutation.state.error;
+        const message =
+          err instanceof Error ? err.message : "something went wrong";
+        // Skip auth errors — the page already redirects on 401
+        if (err && "status" in (err as object) && (err as { status: number }).status === 401) return;
+        toast(message, "error");
+      }
+    });
+  }, [qc, toast]);
+
+  return null;
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(
@@ -26,7 +51,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={client}>
-      {children}
+      <ToastProvider>
+        <GlobalErrorHandler />
+        {children}
+      </ToastProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
