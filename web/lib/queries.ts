@@ -84,6 +84,17 @@ export function useLogProgress() {
   });
 }
 
+export function useUpdateProgress() {
+  const qc = useQueryClient();
+  return useMutation<WeeklyProgress, ApiError, { progressId: string; completed_count: number }>({
+    mutationFn: ({ progressId, completed_count }) =>
+      api.patch<WeeklyProgress>(`/progress/${progressId}`, { completed_count }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.progress() });
+    },
+  });
+}
+
 export function useCreateGoal() {
   const qc = useQueryClient();
   return useMutation<Goal, ApiError, CreateGoalInput>({

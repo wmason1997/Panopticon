@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import {
   useLogProgress,
+  useUpdateProgress,
   useDeleteGoal,
   useArchiveGoal,
   useToggleVisibility,
@@ -22,6 +23,7 @@ interface GoalCardProps {
 
 export function GoalCard({ goal, progress, archived = false }: GoalCardProps) {
   const logProgress = useLogProgress();
+  const updateProgress = useUpdateProgress();
   const deleteGoal = useDeleteGoal();
   const archiveGoal = useArchiveGoal();
   const toggleVisibility = useToggleVisibility();
@@ -122,19 +124,41 @@ export function GoalCard({ goal, progress, archived = false }: GoalCardProps) {
           <div className="flex items-center gap-3">
             {isSingle ? (
               <button
-                onClick={() => { if (!isDone) logProgress.mutate({ goalId: goal.id }); }}
-                disabled={isDone || logProgress.isPending}
+                onClick={() => {
+                  if (!isDone) {
+                    logProgress.mutate({ goalId: goal.id });
+                  } else if (progress) {
+                    updateProgress.mutate({ progressId: progress.id, completed_count: 0 });
+                  }
+                }}
+                disabled={logProgress.isPending || updateProgress.isPending}
                 className={`flex h-7 w-7 items-center justify-center rounded border font-mono text-sm transition-colors ${
                   isDone
-                    ? "border-green-700 bg-green-900/40 text-green-400 cursor-default"
+                    ? "border-green-700 bg-green-900/40 text-green-400 hover:border-red-700 hover:bg-red-900/20 hover:text-red-400"
                     : "border-zinc-700 bg-zinc-800 text-zinc-500 hover:border-green-600 hover:text-green-400"
                 }`}
-                aria-label="Mark complete"
+                aria-label={isDone ? "Undo completion" : "Mark complete"}
               >
                 {isDone ? "✓" : "○"}
               </button>
             ) : (
               <>
+                <button
+                  onClick={() => {
+                    if (progress && completed > 0) {
+                      updateProgress.mutate({ progressId: progress.id, completed_count: completed - 1 });
+                    }
+                  }}
+                  disabled={!progress || completed === 0 || updateProgress.isPending}
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded border font-mono text-sm transition-colors ${
+                    !progress || completed === 0
+                      ? "border-zinc-800 bg-zinc-900/50 text-zinc-700 cursor-default"
+                      : "border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-red-600 hover:text-red-400"
+                  }`}
+                  aria-label="Decrement progress"
+                >
+                  −
+                </button>
                 <button
                   onClick={() => { if (!isDone) logProgress.mutate({ goalId: goal.id }); }}
                   disabled={isDone || logProgress.isPending}
