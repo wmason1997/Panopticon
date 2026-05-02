@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            CASE WHEN g.visibility::text = 'public' THEN g.title ELSE NULL END AS goal_title,\n            wp.completed_count,\n            wp.target_count\n        FROM weekly_progress wp\n        JOIN goals g ON g.id = wp.goal_id\n        WHERE wp.user_id = $1\n          AND wp.week_start_date = $2\n          AND wp.is_published = true\n        ORDER BY g.visibility::text DESC, g.title\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "goal_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "completed_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "target_count",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "f304d93141e416538208ed08cdb4981a55b9f294a615548480ab3d8dff944ebe"
+}
