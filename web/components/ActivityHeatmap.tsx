@@ -5,6 +5,8 @@ import type { ActivityPoint } from "@/lib/types";
 
 interface ActivityHeatmapProps {
   data: ActivityPoint[];
+  selectedWeek?: string | null;
+  onWeekClick?: (weekDate: string) => void;
 }
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -36,7 +38,7 @@ function dateKey(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
+export function ActivityHeatmap({ data, selectedWeek, onWeekClick }: ActivityHeatmapProps) {
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
 
   // Build a lookup map: week_start_date string → point
@@ -108,10 +110,16 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
             ? `${key} — no data`
             : `${key} — ${Math.round(pct * 100)}% (${point!.completed ?? 0}/${point!.target})`;
 
+          const isSelected = key === selectedWeek;
+          const clickable = !isFuture && pct !== null && onWeekClick;
+
           return (
             <div
               key={i}
-              className={`aspect-square rounded-[2px] transition-opacity cursor-default ${color} hover:opacity-80`}
+              className={`aspect-square rounded-[2px] transition-opacity ${color} ${
+                clickable ? "cursor-pointer hover:opacity-80" : "cursor-default"
+              } ${isSelected ? "ring-1 ring-zinc-400 ring-offset-1 ring-offset-zinc-950" : ""}`}
+              onClick={() => clickable && onWeekClick(key)}
               onMouseEnter={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const parent = e.currentTarget.closest(".relative")?.getBoundingClientRect();

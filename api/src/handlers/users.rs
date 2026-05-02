@@ -13,6 +13,18 @@ use crate::{
 };
 
 #[derive(Debug, Deserialize)]
+pub struct WeekQuery {
+    pub date: chrono::NaiveDate,
+}
+
+#[derive(Debug, serde::Serialize, sqlx::FromRow)]
+pub struct WeekGoalItem {
+    pub goal_title: Option<String>,
+    pub completed_count: i32,
+    pub target_count: i32,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct SearchQuery {
     pub q: Option<String>,
 }
@@ -170,4 +182,33 @@ pub struct ActivityPoint {
     pub week_start_date: chrono::NaiveDate,
     pub completed: Option<i32>,
     pub target: Option<i32>,
+}
+
+/// GET /users/:id/week?date=YYYY-MM-DD — per-goal breakdown for a published week
+pub async fn get_week_goals(
+    State(state): State<AppState>,
+    Path(user_id): Path<Uuid>,
+    Query(params): Query<WeekQuery>,
+) -> AppResult<Json<Vec<WeekGoalItem>>> {
+    let rows = sqlx::query_as!(
+        WeekGoalItem,
+        r#"
+        SELECT
+            CASE WHEN g.visibility::text = 'public' THEN g.title ELSE NULL END AS goal_title,
+            wp.completed_count,
+            wp.target_count
+        FROM weekly_progress wp
+        JOIN goals g ON g.id = wp.goal_id
+        WHERE wp.user_id = $1
+          AND wp.week_start_date = $2
+          AND wp.is_published = true
+        ORDER BY g.visibility::text DESC, g.title
+        "#,
+        user_id,
+        params.date,
+    )
+    .fetch_all(&state.db)
+    .await?;
+
+    Ok(Json(rows))
 }

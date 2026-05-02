@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo } from "react";
+import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   useCurrentUser,
@@ -10,10 +10,11 @@ import {
   useFollowUser,
   useUnfollowUser,
   usePublicNotes,
+  useWeekGoals,
 } from "@/lib/queries";
 import { ActivityHeatmap } from "@/components/ActivityHeatmap";
 import { Header } from "@/components/Header";
-import type { ActivityPoint, PublicNoteView } from "@/lib/types";
+import type { ActivityPoint, PublicNoteView, WeekGoalItem } from "@/lib/types";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -33,6 +34,8 @@ export default function ProfilePage({ params }: Props) {
 
   const isOwnProfile = me?.id === id;
   const isFollowing = following.some((u) => u.id === id);
+
+  const [selectedWeek, setSelectedWeek] = useState<string | null>(null);
 
   const stats = useMemo(() => computeStats(activity), [activity]);
 
@@ -154,7 +157,18 @@ export default function ProfilePage({ params }: Props) {
           ) : activity.length === 0 ? (
             <p className="font-mono text-xs text-zinc-700">no published activity yet.</p>
           ) : (
-            <ActivityHeatmap data={activity} />
+            <ActivityHeatmap
+              data={activity}
+              selectedWeek={selectedWeek}
+              onWeekClick={(date) => setSelectedWeek(date === selectedWeek ? null : date)}
+            />
+          )}
+          {selectedWeek && (
+            <WeekDetailPanel
+              userId={id}
+              weekDate={selectedWeek}
+              onClose={() => setSelectedWeek(null)}
+            />
           )}
         </div>
 
@@ -220,6 +234,66 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <div className="flex items-center gap-3 mb-3">
       <span className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">{children}</span>
       <div className="flex-1 h-px bg-zinc-800" />
+    </div>
+  );
+}
+
+function WeekDetailPanel({
+  userId,
+  weekDate,
+  onClose,
+}: {
+  userId: string;
+  weekDate: string;
+  onClose: () => void;
+}) {
+  const { data: goals, isLoading } = useWeekGoals(userId, weekDate);
+
+  return (
+    <div className="mt-2 rounded border border-zinc-800 bg-zinc-900 px-4 py-3">
+      <div className="flex items-center justify-between mb-3">
+        <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest">
+          {formatWeekLabel(weekDate)}
+        </span>
+        <button
+          onClick={onClose}
+          className="font-mono text-[11px] text-zinc-600 hover:text-zinc-300 transition-colors"
+        >
+          ✕
+        </button>
+      </div>
+      {isLoading ? (
+        <span className="font-mono text-xs text-zinc-700 animate-pulse">loading…</span>
+      ) : !goals?.length ? (
+        <p className="font-mono text-xs text-zinc-700">no published goals for this week.</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {goals.map((g, i) => (
+            <GoalRow key={i} goal={g} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GoalRow({ goal }: { goal: WeekGoalItem }) {
+  const done = goal.completed_count >= goal.target_count;
+  const partial = !done && goal.completed_count > 0;
+
+  return (
+    <div className="flex items-center gap-3">
+      <div
+        className={`h-2 w-2 flex-shrink-0 rounded-full ${
+          done ? "bg-green-500" : partial ? "bg-green-900" : "bg-zinc-700"
+        }`}
+      />
+      <span className={`font-mono text-xs flex-1 ${goal.goal_title ? "text-zinc-300" : "text-zinc-600 italic"}`}>
+        {goal.goal_title ?? "private goal"}
+      </span>
+      <span className="font-mono text-[11px] text-zinc-600">
+        {goal.completed_count}/{goal.target_count}
+      </span>
     </div>
   );
 }

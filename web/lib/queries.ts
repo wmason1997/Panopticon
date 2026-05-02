@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "./api";
-import type { ActivityPoint, FeedItem, Goal, LeaderboardEntry, Note, PublicNoteView, PublicProfile, User, UserSummary, WeeklyProgress } from "./types";
+import type { ActivityPoint, FeedItem, Goal, LeaderboardEntry, Note, PublicNoteView, PublicProfile, User, UserSummary, WeekGoalItem, WeeklyProgress } from "./types";
 
 // ─── Query keys ────────────────────────────────────────────────────────────
 
@@ -16,6 +16,7 @@ export const qk = {
   leaderboard: ["leaderboard"] as const,
   notes: (progressId: string) => ["notes", progressId] as const,
   publicNotes: (userId: string) => ["publicNotes", userId] as const,
+  weekGoals: (userId: string, date: string) => ["weekGoals", userId, date] as const,
   search: (q: string) => ["search", q] as const,
 };
 
@@ -275,6 +276,14 @@ export function useSearchUsers(q: string) {
     queryFn: () => api.get<UserSummary[]>(`/users/search?q=${encodeURIComponent(q)}`),
     enabled: q.trim().length > 0,
     staleTime: 10_000,
+  });
+}
+
+export function useWeekGoals(userId: string, date: string | null) {
+  return useQuery<WeekGoalItem[], ApiError>({
+    queryKey: qk.weekGoals(userId, date ?? ""),
+    queryFn: () => api.get<WeekGoalItem[]>(`/users/${userId}/week?date=${date}`),
+    enabled: !!date,
   });
 }
 

@@ -94,6 +94,12 @@ export interface PublicNoteView {
   created_at: string;
 }
 
+export interface WeekGoalItem {
+  goal_title: string | null;
+  completed_count: number;
+  target_count: number;
+}
+
 export interface LeaderboardEntry {
   user_id: string;
   display_name: string;
