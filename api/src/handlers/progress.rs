@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use chrono::{Duration, NaiveDate, Utc}; // NaiveDate used in parse_iso_week return type
+use chrono::{Duration, NaiveDate, Utc};
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -17,18 +17,19 @@ use crate::{
 
 #[derive(Debug, Deserialize)]
 pub struct WeekQuery {
-    /// ISO week string "YYYY-Www" e.g. "2026-W15"
-    pub week: Option<String>,
+    /// Date string "YYYY-MM-DD" matching the week_start_date stored in the DB.
+    /// Defaults to the user's current week start when omitted.
+    pub week: Option<NaiveDate>,
 }
 
-/// GET /progress?week=YYYY-Www
+/// GET /progress?week=YYYY-MM-DD
 pub async fn get_progress(
     State(state): State<AppState>,
     AuthUser(user): AuthUser,
     Query(query): Query<WeekQuery>,
 ) -> AppResult<Json<Vec<WeeklyProgress>>> {
     let week_start = match query.week {
-        Some(ref s) => parse_iso_week(s)?,
+        Some(d) => d,
         None => current_week_start(user.week_start),
     };
 
@@ -58,17 +59,26 @@ pub async fn log_progress(
     Json(req): Json<LogProgressRequest>,
 ) -> AppResult<(StatusCode, Json<WeeklyProgress>)> {
     let increment = req.increment.unwrap_or(1).max(1);
-    let week_start = current_week_start(user.week_start);
 
-    // Ensure the goal belongs to this user
+    // Fetch goal to validate ownership and get target + week context
     let goal = sqlx::query!(
-        "SELECT target_count FROM goals WHERE id = $1 AND user_id = $2 AND is_archived = false",
+        r#"SELECT target_count, goal_type::text as goal_type, week_start_date
+           FROM goals WHERE id = $1 AND user_id = $2 AND is_archived = false"#,
         goal_id,
         user.id,
     )
     .fetch_optional(&state.db)
     .await?
     .ok_or(AppError::NotFound)?;
+
+    // Weekly goals track progress against their own week, not the current one
+    let week_start = if goal.goal_type.as_deref() == Some("weekly") {
+        goal.week_start_date.ok_or_else(|| {
+            AppError::Internal(anyhow::anyhow!("weekly goal missing week_start_date"))
+        })?
+    } else {
+        current_week_start(user.week_start)
+    };
 
     // Upsert the progress row, then enqueue the change
     let progress = sqlx::query_as!(
@@ -133,19 +143,6 @@ pub async fn update_progress(
     Ok(Json(progress))
 }
 
-fn parse_iso_week(s: &str) -> AppResult<NaiveDate> {
-    // Expects "YYYY-Www"
-    let err = || AppError::BadRequest(format!("invalid week format '{s}', expected YYYY-Www"));
-    let parts: Vec<&str> = s.split('-').collect();
-    if parts.len() != 2 || !parts[1].starts_with('W') {
-        return Err(err());
-    }
-    let year: i32 = parts[0].parse().map_err(|_| err())?;
-    let week: u32 = parts[1][1..].parse().map_err(|_| err())?;
-
-    NaiveDate::from_isoywd_opt(year, week, chrono::Weekday::Mon)
-        .ok_or_else(err)
-}
 
 async fn enqueue_publish(
     state: &AppState,

@@ -58,7 +58,7 @@ export function useProgress(week?: string) {
   return useQuery<WeeklyProgress[], ApiError>({
     queryKey: qk.progress(week),
     queryFn: () =>
-      api.get<WeeklyProgress[]>(`/progress${week ? `?week=${encodeURIComponent(week)}` : ""}`),
+      api.get<WeeklyProgress[]>(`/progress${week ? `?week=${week}` : ""}`),
   });
 }
 
@@ -80,7 +80,8 @@ export function useLogProgress() {
     mutationFn: ({ goalId, increment }) =>
       api.post<WeeklyProgress>(`/progress/${goalId}`, { increment: increment ?? 1 }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.progress() });
+      // Invalidate all progress queries — weekly goals log to their own week
+      qc.invalidateQueries({ queryKey: ["progress"] });
     },
   });
 }

@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT target_count, goal_type::text as goal_type, week_start_date\n           FROM goals WHERE id = $1 AND user_id = $2 AND is_archived = false",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "target_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "goal_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "week_start_date",
+        "type_info": "Date"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      true
+    ]
+  },
+  "hash": "07918bcc396ba495270105d2c503cf7264e531d0260935913b6206a302a6a5cd"
+}

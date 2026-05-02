@@ -19,6 +19,10 @@ export default function Dashboard() {
   const { data: goals, isLoading: goalsLoading } = useGoals();
   const { data: archivedGoals = [] } = useArchivedGoals(showArchived);
   const { data: progress } = useProgress();
+
+  // Last week's start date (YYYY-MM-DD) — needed to fetch progress for past weekly goals
+  const lastWeekStartStr = user ? weekStartStr(user.week_start, 1) : null;
+  const { data: lastWeekProgress } = useProgress(lastWeekStartStr ?? undefined);
   const publishNow = usePublishNow();
   const unarchiveGoal = useUnarchiveGoal();
 
@@ -41,12 +45,22 @@ export default function Dashboard() {
 
   if (!user) return null;
 
-  // Map goal_id → progress entry for O(1) lookup
-  const progressMap = new Map((progress ?? []).map((p) => [p.goal_id, p]));
+  // Split goals into current-week vs past-week buckets
+  const currentWeekStart = weekStartStr(user.week_start, 0);
+  const thisWeekGoals = (goals ?? []).filter(
+    (g) => g.goal_type === "recurring" || g.week_start_date === currentWeekStart,
+  );
+  const pastWeekGoals = (goals ?? []).filter(
+    (g) => g.goal_type === "weekly" && g.week_start_date !== currentWeekStart,
+  );
 
-  // Week summary stats
-  const totalGoals = goals?.length ?? 0;
-  const completedGoals = (goals ?? []).filter((g) => {
+  // Progress maps
+  const progressMap = new Map((progress ?? []).map((p) => [p.goal_id, p]));
+  const lastWeekProgressMap = new Map((lastWeekProgress ?? []).map((p) => [p.goal_id, p]));
+
+  // Week summary stats — current week only
+  const totalGoals = thisWeekGoals.length;
+  const completedGoals = thisWeekGoals.filter((g) => {
     const p = progressMap.get(g.id);
     const completed = p?.completed_count ?? 0;
     const target = p?.target_count ?? g.target_count;
@@ -95,17 +109,36 @@ export default function Dashboard() {
         )}
 
         {/* Goal list */}
-        {totalGoals === 0 ? (
+        {totalGoals === 0 && pastWeekGoals.length === 0 ? (
           <EmptyState onAdd={() => setShowAddModal(true)} />
         ) : (
           <div className="flex flex-col gap-3">
-            {(goals ?? []).map((goal) => (
+            {thisWeekGoals.map((goal) => (
               <GoalCard
                 key={goal.id}
                 goal={goal}
                 progress={progressMap.get(goal.id)}
               />
             ))}
+          </div>
+        )}
+
+        {/* Past weekly goals — shown for up to one week after they expire */}
+        {pastWeekGoals.length > 0 && (
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <span className="font-mono text-[10px] text-zinc-700 uppercase tracking-widest">last week</span>
+              <div className="flex-1 h-px bg-zinc-800" />
+            </div>
+            <div className="flex flex-col gap-3">
+              {pastWeekGoals.map((goal) => (
+                <GoalCard
+                  key={goal.id}
+                  goal={goal}
+                  progress={lastWeekProgressMap.get(goal.id)}
+                />
+              ))}
+            </div>
           </div>
         )}
 
@@ -171,7 +204,7 @@ export default function Dashboard() {
         </div>
       </main>
 
-      {showAddModal && <AddGoalModal onClose={() => setShowAddModal(false)} />}
+      {showAddModal && <AddGoalModal onClose={() => setShowAddModal(false)} weekStart={user.week_start} />}
     </>
   );
 }
@@ -191,6 +224,17 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       </button>
     </div>
   );
+}
+
+/** Returns a YYYY-MM-DD string for the week start `weeksBack` weeks ago. */
+function weekStartStr(weekStartPref: number, weeksBack: number): string {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dow = today.getDay();
+  const daysBack = ((dow - weekStartPref) + 7) % 7 + weeksBack * 7;
+  const d = new Date(today);
+  d.setDate(today.getDate() - daysBack);
+  return d.toISOString().slice(0, 10);
 }
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

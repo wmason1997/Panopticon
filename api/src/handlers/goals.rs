@@ -110,7 +110,7 @@ pub async fn list_goals(
               AND is_archived = false
               AND (
                   goal_type = 'recurring'
-                  OR (goal_type = 'weekly' AND week_start_date = $2)
+                  OR (goal_type = 'weekly' AND week_start_date >= ($2::date - '7 days'::interval)::date)
               )
             ORDER BY created_at ASC
             "#,

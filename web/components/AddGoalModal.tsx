@@ -5,16 +5,42 @@ import { useCreateGoal } from "@/lib/queries";
 
 interface AddGoalModalProps {
   onClose: () => void;
+  weekStart?: number; // 0=Sun … 6=Sat, matches user.week_start
 }
 
-export function AddGoalModal({ onClose }: AddGoalModalProps) {
+function getWeekStartDate(weekStartPref: number, weeksBack = 0): Date {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dow = today.getDay();
+  const daysBack = ((dow - weekStartPref) + 7) % 7 + weeksBack * 7;
+  const d = new Date(today);
+  d.setDate(today.getDate() - daysBack);
+  return d;
+}
+
+function toISODate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function formatWeekRange(start: Date): string {
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${MONTHS[start.getMonth()]} ${start.getDate()} – ${MONTHS[end.getMonth()]} ${end.getDate()}, ${end.getFullYear()}`;
+}
+
+export function AddGoalModal({ onClose, weekStart = 0 }: AddGoalModalProps) {
   const createGoal = useCreateGoal();
 
   const [title, setTitle] = useState("");
   const [type, setType] = useState<"recurring" | "weekly">("recurring");
   const [targetCount, setTargetCount] = useState(1);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [weeksBack, setWeeksBack] = useState(0);
   const [error, setError] = useState("");
+
+  const selectedWeekStart = getWeekStartDate(weekStart, weeksBack);
+  const selectedWeekStartStr = toISODate(selectedWeekStart);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,7 +52,13 @@ export function AddGoalModal({ onClose }: AddGoalModalProps) {
     }
 
     createGoal.mutate(
-      { goal_type: type, title: title.trim(), target_count: targetCount, visibility },
+      {
+        goal_type: type,
+        title: title.trim(),
+        target_count: targetCount,
+        visibility,
+        ...(type === "weekly" ? { week_start_date: selectedWeekStartStr } : {}),
+      },
       {
         onSuccess: onClose,
         onError: (err) => setError(err.message),
@@ -94,9 +126,42 @@ export function AddGoalModal({ onClose }: AddGoalModalProps) {
             <p className="font-mono text-[10px] text-zinc-600">
               {type === "recurring"
                 ? "carries forward every week automatically"
-                : "one-off goal for this week only"}
+                : "one-off goal for a specific week"}
             </p>
           </div>
+
+          {/* Week selector — only shown for weekly goals */}
+          {type === "weekly" && (
+            <div className="flex flex-col gap-1.5">
+              <span className="font-mono text-[11px] text-zinc-500 uppercase tracking-widest">
+                Week
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setWeeksBack((w) => Math.min(w + 1, 4))}
+                  className="h-7 w-7 rounded border border-zinc-700 bg-zinc-800 font-mono text-zinc-400 hover:text-zinc-100 transition-colors disabled:opacity-30"
+                  disabled={weeksBack >= 4}
+                  aria-label="Previous week"
+                >
+                  ‹
+                </button>
+                <span className="flex-1 text-center font-mono text-xs text-zinc-300">
+                  {weeksBack === 0 ? "this week" : weeksBack === 1 ? "last week" : `${weeksBack} weeks ago`}
+                  <span className="block text-[10px] text-zinc-600">{formatWeekRange(selectedWeekStart)}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setWeeksBack((w) => Math.max(w - 1, 0))}
+                  className="h-7 w-7 rounded border border-zinc-700 bg-zinc-800 font-mono text-zinc-400 hover:text-zinc-100 transition-colors disabled:opacity-30"
+                  disabled={weeksBack <= 0}
+                  aria-label="Next week"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Target count */}
           <div className="flex flex-col gap-1.5">
